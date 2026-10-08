@@ -4,7 +4,7 @@
 本工具用多套实战验证过的方法一键修复这类 MOD，自动备份、可单独回滚或一键回滚全部，
 并内置一份"AI 修复提示词"（v13）供进阶排查与社区接力。
 
-> **v13.1 新增**：⚙ 设置——记住「Mod 起始文件夹」与「社区配置文件」路径，下次打开自动生效，
+> **v13.1 新增**：⚙ 设置——记住「Mod 起始文件夹」与「配置文件」路径，下次打开自动生效，
 > 选择文件夹/配置时直接从记忆位置开始浏览。
 
 ## 已实测成功的案例
@@ -12,21 +12,21 @@
 | MOD | 失效形态 | 修复方法 |
 |---|---|---|
 | 琳奈 | SetTexture 窗口内 `if vs == 114514.1` 依赖的 vs 打标器失效 | **方法 B**（SpacePig 作者 mod 参考修法）：对照作者新版修复版，换原生槽位替换 ps-t0/t2/t3/t8 + BC7 格式打标 1718.3 |
-| 绯雪（Hiyuki - Origin Toggle，多形态） | 红/蓝双 vs 分支打标器失效 + 形态标记网格哈希更新 | **方法 G**：窗口 vs 条件 → $blue 形态变量分支 + 社区配置更新蓝标记哈希（ef4a0b26→0b71b442）+ 各分支注入 RabbitFX；红/蓝双形态 F10 验收完美 |
+| 绯雪（Hiyuki - Origin Toggle，多形态） | 红/蓝双 vs 分支打标器失效 + 形态标记网格哈希更新 | **方法 G**：窗口 vs 条件 → $blue 形态变量分支 + 配置更新蓝标记哈希（ef4a0b26→0b71b442）+ 各分支注入 RabbitFX；红/蓝双形态 F10 验收完美 |
 | 莫宁 | 打标器失效（无 ref 赋值形态） | 方法 A：RabbitFX 精确窗口 |
 | 达妮娅（role_page 形态） | 合并写法 `if (vs == A \|\| vs == B)` 单分支打标失效 | 方法 B：合并写法识别后自动修复 |
 | 达妮娅（common 双形态） | 两个 vs 打标器（114514.1/114514.2）失效 | 方法 B2：分支1 用 t3、分支2 用 t2 槽位打标区分（与作者修复版 v1.1.5 逐行一致） |
 | 洛瑟拉 | 贴图窗口集中定义在 ui.ini，`if vs == 114514.1` 打标失效 | 方法 B 修 ui.ini（+ t5 残留槽兜底清理；与作者修复版 v1.0.1 内容完全一致；网格 ini 标"不支持"属正常） |
 | 尤诺女仆（merged/per） | 其他工具（稳定纹理/RabbitFX）修过，Component7 鞋子漏注入 + 副 pass 未被覆盖（左鞋红黑、右鞋反光） | **方法 D**：漏注组件补 RabbitFX 三件套 + 副 pass draw 时刻 ps-t1 直绑（per/merged 各用各自贴图组） |
-| 贴图挂钩型尤诺 mod（Iuno） | 无 SetTexture 窗口，21 个 `[TextureOverrideTextureN]`（hash=游戏贴图）全失效 → 游戏更新后贴图哈希变 | **方法 F**：运行时读取你选择的 Wuwa_Mod_Fixer config.json（社区人眼标注的精确哈希映射 15 条 + 按语义注入稳定纹理）；自动匹配（方法 E）曾把 b399ecff 错配 a60c5c6e 致修复失败，社区标注 5315f443 一击成功 |
+| 贴图挂钩型尤诺 mod（Iuno） | 无 SetTexture 窗口，21 个 `[TextureOverrideTextureN]`（hash=游戏贴图）全失效 → 游戏更新后贴图哈希变 | **方法 F**：运行时读取你选择的社区配置文件（精确哈希映射 15 条 + 按语义注入稳定纹理）；自动匹配（方法 E）曾把 b399ecff 错配 a60c5c6e 致修复失败，配置标注 5315f443 一击成功 |
 | Nait3D-Hiyuki（Path of the Shura，作者 Nait3D） | 皮肤纯红、衣服/头发乱，脸与头顶挂饰看似正常；原版就内置 RabbitFX（工具曾误判"已修复"） | **方法 H**：`$swapvar_switch` 三态 toggle（-1/0/1）默认态 0 在组件窗口无绑定分支 → 组件段 14 处 `== -1` 改 `<= 0`（与作者 LOD 段兜底一致）→ 三态全覆盖。F10 验收纹理完全正常（轻微穿模=作者网格缺陷，ini 无解） |
-| Iuno Maid for you（尤诺女仆，作者 xucaikui） | 方法 F 修复后 C7 鞋子仍乱（社区 semantics 无 C7 数据 → 未注入） | **方法 F + D2**：方法 F（社区配置 hash_replace 15 条 + C0-C5 注入）后，按 Resource filename 的 `Components-4-7` 标签识别 C7 与 C4 共用贴图 → 复用 C4 三件套（8/21/22）补注 C7。F10 验收鞋子完全正常 |
+| Iuno Maid for you（尤诺女仆，作者 xucaikui） | 方法 F 修复后 C7 鞋子仍乱（社区 semantics 无 C7 数据 → 未注入） | **方法 F + D2**：方法 F（配置 hash_replace 15 条 + C0-C5 注入）后，按 Resource filename 的 `Components-4-7` 标签识别 C7 与 C4 共用贴图 → 复用 C4 三件套（8/21/22）补注 C7。F10 验收鞋子完全正常 |
 
 > **方法 B / B2 的定位（重要）**：方法 B 最初通过**对比作者 SpacePig 新版修复版与旧版**得出；随后在
 > 达妮娅上验证——工具自动修复结果与作者官方修复版 v1.1.5 **逐行一致**，说明**作者本人修复就是这套手法**。
 > 因为"游戏主贴图（漫反射/法线）都是 BC7 方形贴图"这个事实全游戏成立，该手法**跨作者大概率适用**；
 > 换作者后先用一次验证即可。方法 A（RabbitFX 精确窗口）、**方法 D（漏注补全）** 相对通用；
-> **方法 F（社区配置）** 是贴图挂钩型 mod 的最终解法（社区人眼标注的哈希映射，比自动匹配可靠），
+> **方法 F（社区配置）** 是贴图挂钩型 mod 的最终解法（维护好的哈希映射，比自动匹配可靠），
 > 方法 E（自动匹配）降级为社区配置未收录时的兜底。
 
 ## 使用方法
@@ -36,7 +36,7 @@
 3. 「选择 Mod 文件夹」→ 选中你要修复的 MOD 目录（含 `.ini` 与 `Textures/` 的那个文件夹）
 4. 点「分析」，列表会显示每个 ini 的状态（可修复(H) / 可修复(B) / 可修复(B2) / 可修复(G) / 可修复(A) / 可修复(RFX) / **可修复(F)** / 可修复(E) / 双形态(需AI) / 已修复 / 不支持）。
    工具会**递归扫描子文件夹**：多形态 MOD 每个形态独立分析与修复；`ui.ini` 等纯 UI 配置标"不支持"属正常。
-   **方法 F/G 需要社区配置**：点「社区配置文件（可选）」选择 Wuwa_Mod_Fixer 的 config.json（GPL-3.0，从该项目 GitHub 下载；工具不内置任何社区数据）；
+   **方法 F/G 需要社区配置文件**：点「社区配置文件（可选）」选择它（获取方式见文末致谢）；
    **方法 E 需要转储数据**：先游戏内 F8 转储（WWMI 目录生成 FrameAnalysis-*），工具自动读取其 deduped 目录
 5. 「🔧 单独修复（预设方案）」：从预设方案库选择已验证案例（mod 名/作者/来源），应用到你的 mod 文件夹——适合工具自动检测未覆盖、但结构符合已验证方案的 mod
 6. 点「一键修复」：对可修复的 ini 自动备份（`xxx.ini.bak_时间戳`）并应用对应方法
@@ -50,9 +50,9 @@
    - **可修复(A)**：方法 A —— RabbitFX 精确窗口（Diffuse/Normalmap + SetTextures + ClearTSR）
    - **可修复(RFX)**：方法 D —— **仅适用于无 SetTexture 窗口的组件挂钩型** mod 已被 RabbitFX 修过但有组件漏注：参考已注入组件的
      Diffuse/Normalmap/Lightmap 三件套，给漏注组件在 drawindexed 前补全注入
-   - **可修复(F)**：方法 F —— 社区配置修复（贴图挂钩型，需先选择官方 config.json）：
-     解析社区哈希映射旧→新 + 按社区语义注入稳定纹理（handling=skip 后三件套 + SetTextures，跳过官方/修正层标注的免注入组件）
-   - **可修复(E)**：方法 E —— 贴图挂钩型 mod（社区未收录时兜底）：读最新转储 deduped\，
+   - **可修复(F)**：方法 F —— 社区配置修复（贴图挂钩型，需先选择社区配置文件）：
+     解析配置哈希映射旧→新 + 按语义注入稳定纹理（handling=skip 后三件套 + SetTextures，跳过修正层标注的免注入组件）
+   - **可修复(E)**：方法 E —— 贴图挂钩型 mod（社区配置未收录时兜底）：读最新转储 deduped\，
      与 mod 自带贴图内容相似匹配，自动更新失效贴图挂钩的 hash（阈值 0.90）
 6. 在游戏里按 F10 热重载 MOD（WWMI 无需退出游戏），再进角色检查效果
 7. 「备份记录」里可查看历史修复：每条记录**双击或选中后点「回滚」**恢复原文件，
@@ -75,8 +75,8 @@
   注意：**副 pass 直绑**（组件段内 drawindexed 前 `ps-tN = ref <漫反射资源>`）需要转储 log 才能确定
   N（副 pass 实际读的槽），工具不自动加，请按 AI 提示词方法 D 手工处理
 - 方法 F（贴图挂钩型最终解法）：无 SetTexture 窗口、只有 `[TextureOverrideTextureN]`（hash + this）的 mod
-  → 工具按角色网格哈希匹配【你选择的官方 config.json】（Wuwa_Mod_Fixer，GPL-3.0），做社区哈希映射 + 稳定纹理语义注入。
-  工具**不内置任何社区数据**；工具旁的 `community_config.json`（与 exe 同级）是你的**实战修正层**：
+  → 工具按角色网格哈希匹配【你选择的社区配置文件】，做哈希映射 + 稳定纹理语义注入。
+  工具旁的 `community_config.json`（与 exe 同级）是你的**实战修正层**：
   semantic_swaps（组件类型互换）、skip_components（免注入组件）、hash_extra（额外映射），谁修好新案例就补一条
 - 方法 E（兜底）：同形态但社区配置未收录 → 标"可修复(E)"；自动读转储 deduped\ 做内容相似匹配更新哈希。
   需先 F8 转储；阈值 0.90；**自动匹配不可靠**（曾错配哈希），漫反射高相似度命中才可信，法线/材质图需人工
@@ -95,7 +95,7 @@
 方法 A 用 RabbitFX 管道在原始 SetTexture 窗口内注入贴图，画完 ClearTSR 清理；
 方法 D 处理"稳定纹理工具修过但漏注组件"——参考已注入组件的三件套补全漏注组件；
 方法 H 处理"三态 toggle 默认态落无绑定分支"——组件段绑定只写 `== -1`/`== 1` 但变量默认 0，补 `<= 0` 兜底让默认态也走 mod 贴图；
-方法 F 处理"贴图挂钩型"——用社区维护的精确哈希映射 + 稳定纹理语义注入（社区人眼标注，最可靠）；
+方法 F 处理"贴图挂钩型"——用社区维护的精确哈希映射 + 稳定纹理语义注入（最可靠）；
 方法 E 是方法 F 未覆盖时的自动匹配兜底。
 
 ## AI 修复提示词（重要）
@@ -115,7 +115,7 @@ ModRepairTool/
 │   ├── engine.py     # 修复引擎（策略识别：方法H/G/B/B2优先、方法A/F+D2/D/E分派 + 备份）
 │   ├── history.py    # 备份记录与回滚（存于 %APPDATA%\ModRepairTool）
 │   └── prompt.py     # AI 修复提示词（v13）
-├── community_config.json  # 你的实战修正层（semantic_swaps / skip_components / hash_extra，不包含社区数据）
+├── community_config.json  # 你的实战修正层（semantic_swaps / skip_components / hash_extra）
 ├── AI_PROMPT.md      # 提示词独立文件（可直接复制给 AI）
 ├── build.bat         # 一键打包（需安装 PyInstaller + numpy + imageio）
 └── README.md
@@ -130,25 +130,16 @@ build.bat
 
 产物在 `dist\` 下：`WWMI_MOD修复助手.exe`（单文件，无需安装 Python）。
 > 方法 E/F 用 imageio 读 DDS、numpy 做相似度计算，打包已内置；源码运行时需 `pip install numpy imageio`。
-> 打包时把 `community_config.json`（你的修正层）与 `AI_PROMPT.md` 一并放进 exe 同级；
-> 方法 F 的社区数据在运行时由你选择官方 config.json 提供。
+> 打包时把 `community_config.json`（你的修正层）与 `AI_PROMPT.md` 一并放进 exe 同级。
 
 ## 数据存储
 
 修复记录保存在 `%APPDATA%\ModRepairTool\history.json`，备份文件就在原 ini 旁
 （`xxx.ini.bak_时间戳`），删除记录文件不影响备份本身。
 
-## 许可与数据来源（重要）
-
-- **本工具代码（引擎/界面/方法论）为原创**，不包含 Wuwa_Mod_Fixer 的任何代码或数据。
-- **方法 F 的社区数据**：来自你自行选择的 [Wuwa_Mod_Fixer](https://github.com/Moonholder/Wuwa_Mod_Fixer) 的
-  `config.json`（该项目为 **GPL-3.0**）。工具只在运行时解析该文件、不内置、不分发其内容；
-  使用该文件即表示你遵守其许可条款。工具目录的 `community_config.json` 是**你自己的实战修正层**（纯逻辑/自研）。
-- 请勿在未取得许可的情况下，把 Wuwa_Mod_Fixer 的 config.json 原样内置或随本工具重新分发。
-
 ## 致谢
 
-- [Moonholder / Wuwa_Mod_Fixer](https://github.com/Moonholder/Wuwa_Mod_Fixer)：社区配置（config.json）的维护者与
+- [Moonholder / Wuwa_Mod_Fixer](https://github.com/Moonholder/Wuwa_Mod_Fixer)：社区配置文件（config.json）的维护者与
   Rust 修复工具作者——**方法 F（社区配置修复）** 的哈希映射与贴图语义数据来自该项目社区的人眼标注，
   其 `--stable-texture` / `--derived-hashes` 思路是本工具方法 F 的原理参照。
 - RabbitFX（稳定纹理）作者：稳定纹理机制（SetTextures/ClearTSR 管道、虚拟槽 t60-t65、ShaderRegexMain 打标）的创造者，

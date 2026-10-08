@@ -1,0 +1,31 @@
+{
+  "presets": [
+    {
+      "id": "hiyuki_origin_toggle",
+      "name": "Hiyuki - Origin Toggle（绯雪）",
+      "author": "SpacePig",
+      "source": "香蕉网（gamebanana）",
+      "method": "G",
+      "desc": "多形态窗口 vs 打标器失效 → 改用 mod 形态变量（$blue）分支 + 社区配置修复蓝形态标记网格哈希 + 各分支注入 RabbitFX",
+      "applicable": "适用于 SetTexture 窗口含 ≥2 个 vs 分支、mod 自带形态变量（$blue 等，由形态专属网格 TextureOverride 段设置）的多形态 mod。需用户选择社区配置文件（含该角色数据）。"
+    },
+    {
+      "id": "hiyuki_path_of_the_shura",
+      "name": "Hiyuki - Path of the Shura（修罗之道）",
+      "author": "Nait3D",
+      "source": "香蕉网（gamebanana）",
+      "method": "H",
+      "desc": "三态 toggle 默认态落无绑定分支：组件窗口贴图绑定只写 $swapvar_switch == -1 / == 1，但变量默认 0 → 默认态全部无绑定 → 原版贴图配 mod 网格纹理乱。修复：组件窗口 $swapvar_switch == -1 改为 <= 0（与作者 LOD 段兜底一致）。",
+      "applicable": "适用于组件窗口型 mod：组件段内贴图绑定条件只写 $var == -1 / == 1，而 [Constants] 声明 global persist $var = 0（三态 toggle 默认态）。工具自动检测并只改组件段，不碰贴图挂钩/LOD 段。"
+    },
+    {
+      "id": "iuno_maid_mk3",
+      "name": "Iuno Maid for you（尤诺女仆）",
+      "author": "xucaikui",
+      "source": "香蕉网（gamebanana）",
+      "method": "F+D2",
+      "desc": "贴图挂钩型（无 SetTexture 窗口）+ 组件挂钩混合：方法 F（社区配置 hash_replace 15 条 + 按语义给 C0-C5 注入 RabbitFX）+ 方法 D2（社区语义未覆盖但贴图文件名 Components-4-7 显示与 C4 共享贴图的 C7 鞋子漏注 → 复用 C4 三件套 8/21/22 补注）。",
+      "applicable": "适用于贴图挂钩型 mod：方法 F 注入后仍有组件漏注（社区 semantics 无数据，但 Resource filename 的 Components-N-M 标签显示与已注入组件共享贴图）→ 工具自动复用共享组件三件套补注。"
+    }
+  ]
+}

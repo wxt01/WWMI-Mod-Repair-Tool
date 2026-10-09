@@ -817,7 +817,7 @@ def _add_t5_cleanup(text):
     return "\n".join(lines)
 
 
-def repair_ini(path, diffuse_res=None, normal_res=None, material_res=None, wuwa_path=None, override_path=None):
+def repair_ini(path, diffuse_res=None, normal_res=None, material_res=None, wuwa_path=None, override_path=None, dedup_folder=None):
     """修复入口：方法 B（作者式 ps-t 替换+格式打标）优先，方法 A（RabbitFX 窗口）后备，
     RFX 补全（漏注组件）单独处理"""
     has_bom, text = read_text(path)
@@ -858,7 +858,7 @@ def repair_ini(path, diffuse_res=None, normal_res=None, material_res=None, wuwa_
                     if back.get("ok"):
                         r["backfill"] = back
                 return r
-            return _apply_method_e(path, has_bom, text, os.path.dirname(path))
+            return _apply_method_e(path, has_bom, text, os.path.dirname(path), dedup_folder)
         return {"ok": False, "reason": "无标准 SetTexture 窗口，本工具暂不支持此类 mod"}
 
     # ---- 多 vs 条件行：先试方法 G（形态变量分支），再试双分支格式打标（作者修复版通法）----
@@ -1513,13 +1513,14 @@ def _apply_method_h(path, has_bom, text, var):
 
 
 def _find_texture_overrides(text):
-    """找 [TextureOverrideTextureN] 段：hash + this 引用，返回 [(段名, hash行号, hash值, this资源)]"""
+    """找 [TextureOverrideTextureN] 及 [TextureOverrideTextureNLODx] 段：hash + this 引用，
+    返回 [(段名, hash行号, hash值, this资源)]。LOD 段与主挂钩一起参与匹配更新。"""
     out = []
     lines = text.splitlines()
     i = 0
     n = len(lines)
     while i < n:
-        m = re.match(r"^\[(TextureOverrideTexture\d+)\]\s*$", lines[i].strip())
+        m = re.match(r"^\[(TextureOverrideTexture\d+(?:LOD\d+)?)\]\s*$", lines[i].strip())
         if m:
             seg_name = m.group(1)
             seg = []
@@ -1534,7 +1535,7 @@ def _find_texture_overrides(text):
                 if mm:
                     h = (ln_no, mm.group(1))
                 mm2 = re.match(r"^\s*this\s*=\s*(Resource\S+)", ln)
-                if mm2:
+                if mm2 and this is None:
                     this = mm2.group(1)
             if h and this:
                 out.append((seg_name, h[0], h[1], this))
@@ -1545,19 +1546,67 @@ def _find_texture_overrides(text):
 
 
 def _find_dedup_folder(folder):
-    """从 mod 文件夹向上找 WWMI 根目录下的最新 FrameAnalysis-* deduped 目录"""
-    parent = os.path.dirname(os.path.dirname(folder))  # Mods\xxx -> WWMI
-    best = None
-    if os.path.isdir(parent):
-        for d in os.listdir(parent):
-            if d.startswith("FrameAnalysis-"):
-                dd = os.path.join(parent, d, "deduped")
-                if os.path.isdir(dd):
-                    if best is None or d > best[0]:
-                        best = (d, dd)
-    if best:
-        return best[1]
-    return None
+    """从任意深度向上找最近的含 FrameAnalysis-*deduped 的目录（支持多层嵌套 mod 结构）"""
+    parent = os.path.dirname(folder)
+    while True:
+        best = None
+        if os.path.isdir(parent):
+            try:
+                entries = os.listdir(parent)
+            except OSError:
+                entries = []
+            for d in entries:
+                if d.startswith("FrameAnalysis-"):
+                    dd = os.path.join(parent, d, "deduped")
+                    if os.path.isdir(dd):
+                        if best is None or d > best[0]:
+                            best = (d, dd)
+            if best:
+                return best[1]
+        up = os.path.dirname(parent)
+        if up == parent:
+            return None
+        parent = up
+
+
+def _find_all_dedup_folders(folder, extra=None):
+    """从任意深度向上找所有含 FrameAnalysis-*deduped 的目录（多形态/多转储交叉验证用）
+    extra：用户显式指定的 FrameAnalysis 文件夹（含 deduped 子目录），优先并入。"""
+    parents = []
+    parent = os.path.dirname(folder)
+    while True:
+        if os.path.isdir(parent):
+            try:
+                entries = os.listdir(parent)
+            except OSError:
+                entries = []
+            for d in entries:
+                if d.startswith("FrameAnalysis-"):
+                    dd = os.path.join(parent, d, "deduped")
+                    if os.path.isdir(dd):
+                        parents.append(dd)
+        up = os.path.dirname(parent)
+        if up == parent:
+            break
+        parent = up
+    if extra:
+        # 兼容用户选 FrameAnalysis 文件夹或直接选 deduped 子目录
+        cand = extra.rstrip("\\/")
+        if os.path.basename(cand) == "deduped":
+            if os.path.isdir(cand):
+                parents.insert(0, cand)
+        else:
+            dd = os.path.join(cand, "deduped")
+            if os.path.isdir(dd):
+                parents.insert(0, dd)
+    seen = set()
+    uniq = []
+    for dd in parents:
+        if dd not in seen:
+            seen.add(dd)
+            uniq.append(dd)
+    return uniq
+
 
 
 _DDS_CACHE = {}
@@ -1631,26 +1680,41 @@ def _match_new_hash(tex_path, dedup_textures, thr=0.86):
     return best
 
 
-def _apply_method_e(path, has_bom, text, folder):
-    """更新所有失效贴图挂钩的 hash（内容相似匹配）"""
+def _apply_method_e(path, has_bom, text, folder, dedup_folder=None):
+    """方法 E（贴图挂钩型通法，Radiant Hiyuki/shiroho 案例升级）：
+    更新所有失效贴图挂钩的 hash（内容相似匹配）。
+    - 匹配池 = 【全部可用转储】的并集（多形态/多转储交叉验证），取相似度最高匹配
+      → 避免单一转储把内容相似的不同形态贴图误匹配到同一哈希（Texture6 曾被误改成 Ice 形态哈希）
+    - 挂钩段含 LOD 段（TextureOverrideTextureNLODx）：LOD 段与主挂钩一起参与匹配更新
+      → 游戏近景走 LOD0 挂钩，LOD 哈希失效会导致切换功能不生效（恶魔脸案例）"""
     oves = _find_texture_overrides(text)
     if not oves:
         return {"ok": False, "reason": "未找到贴图挂钩段"}
-    dedup = _find_dedup_folder(folder)
-    if not dedup:
+    dedups = _find_all_dedup_folders(folder, dedup_folder)
+    if not dedups:
         return {"ok": False, "reason": "未找到转储 deduped 目录（需 F8 转储）"}
     res = find_textures(text, folder)
-    dedup_textures = _collect_dedup_textures(dedup)
-    if not dedup_textures:
+    # 全部转储并集匹配池（同一哈希在不同转储重复 → 去重保留一个）
+    pool = []
+    seen_h = set()
+    for dd in dedups:
+        for h8, fp, t, sz in _collect_dedup_textures(dd):
+            if h8 not in seen_h:
+                seen_h.add(h8)
+                pool.append((h8, fp, t, sz))
+    if not pool:
         return {"ok": False, "reason": "deduped 目录无贴图可对比"}
 
     updated = []
     lines = text.splitlines()
+    valid_hashes = set(h8 for h8, _fp, _t, _sz in pool)
     for seg_name, ln_no, old_hash, this in oves:
+        if old_hash.lower() in valid_hashes:
+            continue  # 旧哈希仍在转储（游戏当前在用）→ 有效，跳过，防止误改
         tex_path = res.get(this)
         if not tex_path or not os.path.exists(tex_path):
             continue
-        mt = _match_new_hash(tex_path, dedup_textures, thr=0.90)
+        mt = _match_new_hash(tex_path, pool, thr=0.90)
         if mt:
             new_hash, sc, mf = mt
             if new_hash.lower() != old_hash.lower():

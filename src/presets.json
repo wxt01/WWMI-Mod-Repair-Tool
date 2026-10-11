@@ -6,8 +6,11 @@
       "author": "SpacePig",
       "source": "香蕉网（gamebanana）",
       "method": "G",
-      "desc": "多形态窗口 vs 打标器失效 → 改用 mod 形态变量（$blue）分支 + 社区配置修复蓝形态标记网格哈希 + 各分支注入 RabbitFX",
-      "applicable": "适用于 SetTexture 窗口含 ≥2 个 vs 分支、mod 自带形态变量（$blue 等，由形态专属网格 TextureOverride 段设置）的多形态 mod。需用户选择社区配置文件（含该角色数据）。"
+      "desc": "多形态窗口 vs 打标器失效 → 改用 mod 形态变量（$blue）分支 + 更新蓝形态标记网格哈希（ef4a0b26→0b71b442，工具内置案例映射自动处理）+ 各分支保留原窗口直接绑（ps-t0/t2/t3/t6/t7）并注入 RabbitFX（双保险）+ 调用点补 ClearTSR。红/蓝双形态与第二形态纹理全部正常。",
+      "applicable": "适用于 SetTexture 窗口含 ≥2 个 vs 分支、mod 自带形态变量（$blue 等，由形态专属网格 TextureOverride 段设置）的多形态 mod。形态标记 hash 更新优先用社区配置映射，找不到时自动用内置案例映射（绯雪已验证 ef4a0b26→0b71b442）。",
+      "known_hash_fixes": {
+        "ef4a0b26": "0b71b442"
+      }
     },
     {
       "id": "hiyuki_path_of_the_shura",

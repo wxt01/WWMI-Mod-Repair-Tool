@@ -26,6 +26,16 @@ MARK_DIFFUSE = "Resource\\RabbitFX\\Diffuse = ref "
 MARK_NORMAL = "Resource\\RabbitFX\\Normalmap = ref "
 MARK_MATERIAL = "Resource\\RabbitFX\\Materialmap = ref "
 
+# 内置实战验证映射（工具自身案例知识，非社区数据）：
+# 游戏更新后"形态标记网格 hash"失效，导致 mod 的形态变量（$blue 等）永远不置位。
+# 以下映射来自本工具实战修复并游戏内验收成功的案例；社区配置优先，找不到时用此兜底。
+_KNOWN_HASH_FIXES = {
+    # 绯雪 Hiyuki - Origin Toggle（作者 SpacePig）：蓝形态标记 [TextureOverrideBlue] 的
+    # 网格 hash ef4a0b26 失效 → 0b71b442。不更新则 $blue 恒 0 → 蓝/第二形态面板不显示、
+    # 切换不生效、皮肤贴图永远走红分支而纹理乱。更新后红蓝双形态 + 第二形态全部正常。
+    "ef4a0b26": "0b71b442",
+}
+
 # 方法 B 相关
 FEATURE_SECTION = """[TextureOverrideMainColorFeature]
 match_type = Texture2D
@@ -573,6 +583,9 @@ def _apply_method_g(path, has_bom, text, wuwa_path=None, override_path=None):
             for _mh in (_c.get("match") or []):
                 if _mh.lower() == h and _c.get("main_new"):
                     return _c["main_new"]
+        # 兜底：内置实战验证映射（工具自身案例知识，非社区数据）
+        if h in _KNOWN_HASH_FIXES:
+            return _KNOWN_HASH_FIXES[h]
         return None
 
     # 形态变量评分：① 哈希在社区配置有映射(100) ② 段名/变量名含形态语义(10)

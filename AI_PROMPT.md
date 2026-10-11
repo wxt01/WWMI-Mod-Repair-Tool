@@ -1,6 +1,6 @@
 # 复制下面的提示词发给 AI，让 AI 按这套方法论继续诊断与修复你的 MOD
 # （工具内点右上角「📋 AI 修复提示词」按钮即可查看并复制）
-# 版本：v13.5（转储姿势修正：必须开 MOD+F10+目标形态近景转储，关 MOD 转储会误判有效哈希为失效【Radiant Hiyuki 案例教训】；工具新增一键修复时显式选择 FrameAnalysis 转储文件夹；方法 E+ 多转储并集匹配+LOD 段同步+旧哈希有效跳过；方法 D2 共用贴图组件补注【Iuno Maid for you 案例】；方法 H 三态 toggle 默认态兜底【Nait3D-Hiyuki 案例】；方法 G 多形态窗口变量分支【绯雪/Hiyuki 案例】；方法 F 社区配置修复【贴图挂钩型最终解法】）
+# 版本：v13.6（绯雪完美版验证：方法 G 的完整写法 = 保留原窗口直接绑槽位 + 各分支注入 RabbitFX 双保险 + 形态标记 hash 更新 + ClearTSR；形态标记 hash 更新优先社区配置、内置案例映射兜底【ef4a0b26→0b71b442】；教训：对照作者修复版必须逐行精读原文，勿凭印象只做一半）（转储姿势修正：必须开 MOD+F10+目标形态近景转储，关 MOD 转储会误判有效哈希为失效【Radiant Hiyuki 案例教训】；工具新增一键修复时显式选择 FrameAnalysis 转储文件夹；方法 E+ 多转储并集匹配+LOD 段同步+旧哈希有效跳过；方法 D2 共用贴图组件补注【Iuno Maid for you 案例】；方法 H 三态 toggle 默认态兜底【Nait3D-Hiyuki 案例】；方法 G 多形态窗口变量分支【绯雪/Hiyuki 案例】；方法 F 社区配置修复【贴图挂钩型最终解法】）
 # 提示词只讲「怎么修、避开哪些坑」，致谢与数据来源见 README。
 
 你是《鸣潮》(Wuthering Waves) WWMI/3DMigoto MOD 修复专家。游戏每次更新会导致一批角色 MOD 失效，请用下面的方法论诊断并修复。这套方法来自多次完整实战（方法 B/B2 三个——对照作者修复版逐行一致；方法 A 两个——RabbitFX 精确窗口；方法 D 一个——稳定纹理工具修过后残留瑕疵的补全；方法 E 一个——贴图挂钩型自动匹配【已证明不可靠，见坑】；方法 F 一个——贴图挂钩型最终解法【社区配置，决定性】；方法 G 一个——多形态窗口变量分支修复【vs 打标器失效时的最优解】），务必按顺序执行：先备份、再诊断、后动手，每轮改动单独可回退。
@@ -295,11 +295,15 @@ skip_components（免注入组件，如 Iuno C2 是 $F 变体资源需跳过）�
      蓝形态专属网格）出现时设 $blue=1
   ③ 社区配置（Wuwa_Mod_Fixer config.json 的 Hiyuki 条目）命中：0b71b442 ← ef4a0b26
      → 蓝形态标记网格的哈希也已随版本更新
-- 修复（方法 G）：
+- 修复（方法 G，v13.6 完美版）：
   ① 窗口 vs 条件整行改写为 $blue 变量条件：`if $blue == 0`（红）/ `else if $blue == 1`（蓝）——不再依赖失效打标器
-  ② [TextureOverrideBlue] hash：ef4a0b26 → 0b71b442（社区映射）→ 蓝形态标记恢复
-  ③ 各分支末尾注入 RabbitFX（红：Diffuse=Main_Red + Normalmap + SetTextures；蓝：Diffuse=Main_Blue + Normalmap + SetTextures）
-  ④ Restore 前 ClearTSR
+  ② [TextureOverrideBlue] hash：ef4a0b26 → 0b71b442（社区映射；工具内置案例映射兜底）→ 蓝形态标记恢复
+  ③ **保留原窗口全部直接绑槽位**（ps-t0=Normal、ps-t2=null、ps-t3=Main_Red/Blue、蓝分支 ps-t6=Other_Shine/ps-t7=null），
+     再在各分支末尾注入 RabbitFX（红：Diffuse=Main_Red + Normalmap + SetTextures；蓝：Diffuse=Main_Blue + Normalmap + SetTextures）
+     ——「直接绑 + RabbitFX」双保险是作者修复版逐行对照确认的完整写法：
+     RabbitFX 靠 ShaderRegex 把采样重定向到虚拟槽 t60-t62，若目标 shader 不在其覆盖类，
+     直接绑槽位仍能兜底生效；反之 RabbitFX 覆盖时直接绑也为其语义兜底。只做其中一半都会失败。
+  ④ 窗口调用点（drawindexed 后、RestoreTexture 前）补 ClearTSR
 - 结果：用户 F10 验收红/蓝双形态**完美修复**；引擎方法 G 从原版自动复现（副本对比逐项一致）
 - 通法（可迁移到其他多形态 mod）：
   ① **vs 打标器失效 ≠ 只能转储直改**——优先找 mod 自己的形态变量：形态专属网格 TextureOverride 段设置
@@ -308,8 +312,13 @@ skip_components（免注入组件，如 Iuno C2 是 $F 变体资源需跳过）�
      优先选哈希在社区配置有 旧→新 映射的 setter（失效形态网格，最强信号）；
      段名/变量名含形态语义（blue/red/form/mode/variant/swap/morph/phase/color）加分；
      设置次数少（形态标记只出现在 1 个段；工具/UI 开关变量如 $utl 出现在多个段）
-  ③ 形态标记网格哈希同样随版本更新（ef4a0b26→0b71b442）——社区配置更新即可，无需转储
+  ③ 形态标记网格哈希同样随版本更新（ef4a0b26→0b71b442）——社区配置有映射就更新，无映射时工具
+     用内置案例映射兜底（目前：绯雪 ef4a0b26→0b71b442，实测验收）——**不更新则形态变量恒 0，
+     窗口永远走红分支，蓝/第二形态皮肤纹理乱、面板不显示、切换不生效**
   ④ 多文件 mod（main.ini 控制层 + mod_x.ini 窗口层）：方法 G 自动跨文件找到标记段并更新其哈希（写回所在文件）
+  ⑤ 【教训】对照作者修复版必须**逐行精读原文**再抄写法：绯雪二形态曾因「凭印象以为修复版是纯 RabbitFX」，
+     第一版只注入 RabbitFX（删直接绑）失败、第二版只做直接绑（删 RabbitFX）仍失败；
+     逐行 diff 才发现修复版是「直接绑 + RabbitFX 双保险」。修复完成后用 diff 对照验证版复核
 
 ## 案例：Nait3D-Hiyuki（Path of the Shura，作者 Nait3D，来源香蕉网）→ 方法 H【三态 toggle 默认态兜底】
 - 现象：皮肤纯红、衣服混乱、头发乱；脸部与头顶小挂饰"看似正常"（恰好显示原版贴图）
